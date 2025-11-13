@@ -135,39 +135,6 @@ describe("NotificationManager", function() {
 			expect(result).to.equal(false);
 		});
 
-		it.skip("should respect channel whitelist (removed)", function() {
-			const config = {
-				services: {},
-				filters: {
-					onlyWhenAway: false,
-					highlights: true,
-					channels: {
-						whitelist: ["#allowed"],
-						blacklist: []
-					}
-				}
-			};
-
-			notificationManager = new NotificationManager(config, mockLogger);
-
-			const messageData = {
-				type: "message",
-				network: "freenode",
-				channel: "#other",
-				nick: "bob",
-				message: "hey testuser",
-				highlight: true
-			};
-
-			const client = {
-				name: "testuser",
-				user: { away: false }
-			};
-
-			const result = notificationManager.shouldNotify(messageData, client);
-			expect(result).to.equal(false);
-		});
-
 		it("should allow whitelisted channels", function() {
 			const config = {
 				services: {},
@@ -199,39 +166,6 @@ describe("NotificationManager", function() {
 
 			const result = notificationManager.shouldNotify(messageData, client);
 			expect(result).to.equal(true);
-		});
-
-		it.skip("should respect channel blacklist (removed)", function() {
-			const config = {
-				services: {},
-				filters: {
-					onlyWhenAway: false,
-					highlights: true,
-					channels: {
-						whitelist: [],
-						blacklist: ["#blocked"]
-					}
-				}
-			};
-
-			notificationManager = new NotificationManager(config, mockLogger);
-
-			const messageData = {
-				type: "message",
-				network: "freenode",
-				channel: "#blocked",
-				nick: "bob",
-				message: "hey testuser",
-				highlight: true
-			};
-
-			const client = {
-				name: "testuser",
-				user: { away: false }
-			};
-
-			const result = notificationManager.shouldNotify(messageData, client);
-			expect(result).to.equal(false);
 		});
 
 		it("should allow non-blacklisted channels", function() {

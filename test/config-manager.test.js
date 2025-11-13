@@ -186,93 +186,12 @@ describe("ConfigManager", function() {
 			expect(validated.filters.onlyWhenAway).to.equal(true); // Defaults to true
 			expect(validated.filters.highlights).to.equal(true); // Defaults to true
 		});
-
-		it.skip("should validate array fields (channel filtering removed)", function() {
-			const config = {
-				enabled: false,
-				services: {},
-				filters: {
-					onlyWhenAway: true,
-					highlights: true,
-					channels: {
-						whitelist: "not-an-array",
-						blacklist: "not-an-array"
-					}
-				}
-			};
-
-			const validated = configManager.validateConfig(config);
-
-		});
-
-		it.skip("should validate Pushover configuration - moved to pushover.test.js", function() {
-			const config = {
-				enabled: false,
-				channelName: "external-notify",
-				services: {
-					pushover: {
-						userKey: "test-key",
-						apiToken: "test-token"
-						// priority and sound missing
-					}
-				},
-				filters: {
-					onlyWhenAway: true,
-					highlights: true,
-					channels: {
-						whitelist: [],
-						blacklist: []
-					}
-				}
-			};
-
-			const validated = configManager.validateConfig(config);
-
-			expect(validated.services.pushover.userKey).to.equal("test-key");
-			expect(validated.services.pushover.apiToken).to.equal("test-token");
-		});
 	});
 
 	describe("isValid()", function() {
 		it("should return false for empty services", function() {
 			const isValid = configManager.isValid();
 			expect(isValid).to.equal(false);
-		});
-
-		it.skip("should return false for incomplete Pushover config - moved to pushover.test.js", function() {
-			configManager.save({
-				enabled: true,
-				channelName: "external-notify",
-				services: {
-					pushover: {
-						userKey: "test-key"
-						// apiToken missing
-					}
-				},
-				filters: {}
-			});
-
-			const isValid = configManager.isValid();
-			expect(isValid).to.equal(false);
-		});
-
-		it.skip("should return true for complete Pushover config - moved to pushover.test.js", function() {
-			configManager.save({
-				enabled: true,
-				channelName: "external-notify",
-				services: {
-					pushover: {
-						userKey: "a".repeat(30),
-						apiToken: "b".repeat(30),
-						priority: 0,
-						sound: "pushover"
-					}
-				},
-				filters: {}
-			});
-
-			const isValid = configManager.isValid();
-			expect(isValid).to.equal(true);
 		});
 	});
 

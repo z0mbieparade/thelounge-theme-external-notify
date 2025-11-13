@@ -5,7 +5,11 @@ Send IRC notifications to external services like Pushover when you're highlighte
 ## Features
 
 - Get notifications on your phone or other devices when highlighted/mentioned in IRC
-- Currently supports Pushover (more services coming soon)
+- Supports multiple notification services:
+  - **Pushover** - Popular push notification service
+  - **Prowl** - iOS push notifications (Growl compatible)
+  - **ntfy.sh** - Open-source, self-hostable notification service
+  - **Generic Webhook** - Send to any webhook endpoint (Discord, Slack, Mattermost, etc.)
 - Smart filtering to avoid notification spam
   - Only notify when away (optional)
   - Deduplication to prevent spam
@@ -44,29 +48,78 @@ Send IRC notifications to external services like Pushover when you're highlighte
 3. Create an application at [pushover.net/apps/build](https://pushover.net/apps/build)
 4. Note your **API Token** for the application
 
+### Prowl Setup
+
+1. Download Prowl from the [App Store](https://apps.apple.com/app/prowl-easy-push-notifications/id320876271)
+2. Create an account or sign in to the Prowl app
+3. Get your API key from [prowlapp.com/api_settings.php](https://www.prowlapp.com/api_settings.php)
+4. Note your **40-character API Key**
+
+### ntfy.sh Setup
+
+1. Choose a unique topic name (e.g., `thelounge-yourname`)
+2. Optional: Set up your own ntfy server at [docs.ntfy.sh/install](https://docs.ntfy.sh/install/)
+3. Install the ntfy app on your device:
+   - Android: [Google Play](https://play.google.com/store/apps/details?id=io.heckel.ntfy)
+   - iOS: [App Store](https://apps.apple.com/us/app/ntfy/id1625396347)
+   - Web: [ntfy.sh/app](https://ntfy.sh/app)
+4. Subscribe to your topic in the ntfy app
+
+### Generic Webhook Setup
+
+Works with any service that accepts webhooks:
+- **Discord**: Create a webhook in Server Settings → Integrations → Webhooks
+- **Slack**: Create an incoming webhook app
+- **Mattermost**: Create an incoming webhook
+- **Custom**: Any HTTP endpoint that accepts POST requests
+
 ## Configuration
 
 ### Quick Start (Interactive Setup)
 
-The easiest way to configure the plugin is directly from IRC:
+The easiest way to configure the plugin is directly from IRC. Choose your preferred service:
 
-1. In any TheLounge channel, configure your Pushover credentials:
-   ```
-   /notify config pushover userKey YOUR_30_CHARACTER_USER_KEY
-   /notify config pushover apiToken YOUR_30_CHARACTER_API_TOKEN
-   ```
+#### Pushover
 
-2. Enable notifications:
-   ```
-   /notify enable
-   ```
+```
+/notify config pushover userKey YOUR_30_CHARACTER_USER_KEY
+/notify config pushover apiToken YOUR_30_CHARACTER_API_TOKEN
+/notify enable
+/notify test
+```
 
-3. Test it:
-   ```
-   /notify test
-   ```
+#### Prowl
 
-That's it! The configuration is automatically saved to your user config file.
+```
+/notify config prowl apiKey YOUR_40_CHARACTER_API_KEY
+/notify enable
+/notify test
+```
+
+#### ntfy.sh
+
+```
+/notify config ntfy topic thelounge-yourname
+/notify enable
+/notify test
+```
+
+#### Generic Webhook
+
+```
+/notify config webhook url https://your-webhook-url
+/notify enable
+/notify test
+```
+
+For Discord webhooks:
+```
+/notify config webhook url https://discord.com/api/webhooks/YOUR_WEBHOOK
+/notify config webhook bodyTemplate '{"content": "**{{title}}**\n{{message}}"}'
+/notify enable
+```
+
+The configuration is automatically saved to your user config file.
 
 ### Alternative: Manual Configuration
 
@@ -127,6 +180,41 @@ All changes are automatically saved to your user configuration file.
   - `2`: Emergency priority, requires acknowledgment
 - **sound**: Notification sound (default: "pushover", see [Pushover sounds](https://pushover.net/api#sounds))
 
+#### Prowl Settings
+
+- **apiKey**: Your 40-character Prowl API key (required)
+- **priority**: Notification priority (-2 to 2, default: 0)
+  - `-2`: Very Low
+  - `-1`: Moderate
+  - `0`: Normal (default)
+  - `1`: High
+  - `2`: Emergency
+- **application**: Application name shown in notification (default: "TheLounge", max 256 chars)
+
+#### ntfy.sh Settings
+
+- **topic**: Your unique topic name (required)
+- **server**: ntfy server URL (default: "https://ntfy.sh")
+- **priority**: Notification priority (1-5, default: 3)
+  - `1`: Min priority
+  - `3`: Default priority
+  - `5`: Max priority
+- **tags**: Comma-separated tags (default: "", example: "irc,thelounge")
+
+#### Generic Webhook Settings
+
+- **url**: Webhook URL to POST notifications to (required)
+- **method**: HTTP method (default: "POST", options: GET, POST, PUT, PATCH)
+- **contentType**: Content-Type header (default: "application/json")
+- **headers**: Custom headers as JSON string (default: "{}", example: '{"Authorization": "Bearer TOKEN"}')
+- **bodyTemplate**: JSON template for request body (default: '{"title": "{{title}}", "message": "{{message}}", "timestamp": "{{timestamp}}"}')
+  - Use `{{title}}`, `{{message}}`, `{{timestamp}}` as placeholders
+
+**Common Webhook Templates:**
+- Discord: `'{"content": "**{{title}}**\n{{message}}"}'`
+- Slack: `'{"text": "{{title}}", "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "{{message}}"}}]}'`
+- Mattermost: `'{"text": "**{{title}}**\n{{message}}"}'`
+
 #### Filter Settings
 
 - **onlyWhenAway**: Only send notifications when marked as away (default: `true`)
@@ -153,7 +241,68 @@ All commands are used with `/notify` in any channel or private message.
 
 ```
 /notify setup pushover      Show Pushover setup instructions
+/notify setup prowl         Show Prowl setup instructions
+/notify setup ntfy          Show ntfy.sh setup instructions
+/notify setup webhook       Show generic webhook setup instructions
 ```
+
+### Customizing Notification Format
+
+You can customize how notifications are formatted using template variables. This allows you to control exactly what information is displayed in the notification title and message.
+
+#### Available Template Variables
+
+- `{{network}}` - IRC network name (e.g., "freenode")
+- `{{channel}}` - Channel name or "PM" for private messages (e.g., "#lounge")
+- `{{nick}}` or `{{user}}` - Sender's nickname (e.g., "john")
+- `{{message}}` or `{{text}}` - Message content
+- `{{date}}` - Formatted date/time (e.g., "Jan 15, 14:30")
+- `{{time}}` - Time only (e.g., "14:30")
+- `{{timestamp}}` - ISO timestamp (e.g., "2025-01-15T14:30:00.000Z")
+- `{{type}}` - Message type ("message", "action", "notice")
+
+#### Format Configuration Commands
+
+```
+/notify config format title "{{network}}"
+/notify config format message "<{{nick}}> {{message}}"
+/notify config format actionMessage "* {{nick}} {{message}}"
+/notify config format reset
+```
+
+#### Format Examples
+
+**Default Format (channel messages):**
+- Title: `freenode - #lounge`
+- Message: `<john> Hello everyone`
+
+**Default Format (private messages):**
+- Title: `freenode`
+- Message: `<john> Hi there`
+
+**With timestamps:**
+```
+/notify config format message "{{time}} <{{nick}}> {{message}}"
+```
+Result: `14:30 <john> Hello everyone`
+
+**Minimal format:**
+```
+/notify config format title "{{network}}"
+/notify config format message "{{nick}}: {{message}}"
+```
+Result:
+- Title: `freenode`
+- Message: `john: Hello everyone`
+
+**Detailed format:**
+```
+/notify config format title "{{network}} / {{channel}} @ {{time}}"
+/notify config format message "[{{type}}] {{nick}}: {{message}}"
+```
+Result:
+- Title: `freenode / #lounge @ 14:30`
+- Message: `[message] john: Hello everyone`
 
 ## Example Configurations
 
@@ -219,6 +368,181 @@ All commands are used with `/notify` in any channel or private message.
   }
 }
 ```
+
+### Prowl - iOS Notifications
+
+```json
+{
+  "enabled": true,
+  "services": {
+    "prowl": {
+      "enabled": true,
+      "apiKey": "your-40-character-api-key",
+      "priority": 0,
+      "application": "TheLounge"
+    }
+  },
+  "filters": {
+    "onlyWhenAway": true,
+    "highlights": true
+  }
+}
+```
+
+### ntfy.sh - Public Server
+
+```json
+{
+  "enabled": true,
+  "services": {
+    "ntfy": {
+      "enabled": true,
+      "server": "https://ntfy.sh",
+      "topic": "thelounge-yourname",
+      "priority": 3,
+      "tags": "irc,thelounge"
+    }
+  },
+  "filters": {
+    "onlyWhenAway": true,
+    "highlights": true
+  }
+}
+```
+
+### ntfy.sh - Self-Hosted
+
+```json
+{
+  "enabled": true,
+  "services": {
+    "ntfy": {
+      "enabled": true,
+      "server": "https://ntfy.example.com",
+      "topic": "irc-notifications",
+      "priority": 4,
+      "tags": ""
+    }
+  },
+  "filters": {
+    "onlyWhenAway": false,
+    "highlights": true
+  }
+}
+```
+
+### Generic Webhook - Discord
+
+```json
+{
+  "enabled": true,
+  "services": {
+    "webhook": {
+      "enabled": true,
+      "url": "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN",
+      "method": "POST",
+      "contentType": "application/json",
+      "headers": "{}",
+      "bodyTemplate": "{\"content\": \"**{{title}}**\\n{{message}}\"}"
+    }
+  },
+  "filters": {
+    "onlyWhenAway": true,
+    "highlights": true
+  }
+}
+```
+
+### Generic Webhook - Slack
+
+```json
+{
+  "enabled": true,
+  "services": {
+    "webhook": {
+      "enabled": true,
+      "url": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+      "method": "POST",
+      "contentType": "application/json",
+      "headers": "{}",
+      "bodyTemplate": "{\"text\": \"{{title}}\", \"blocks\": [{\"type\": \"section\", \"text\": {\"type\": \"mrkdwn\", \"text\": \"{{message}}\"}}]}"
+    }
+  },
+  "filters": {
+    "onlyWhenAway": false,
+    "highlights": true
+  }
+}
+```
+
+### Multiple Services
+
+You can use multiple services simultaneously:
+
+```json
+{
+  "enabled": true,
+  "services": {
+    "pushover": {
+      "enabled": true,
+      "userKey": "your-user-key",
+      "apiToken": "your-api-token",
+      "priority": 0,
+      "sound": "pushover"
+    },
+    "prowl": {
+      "enabled": true,
+      "apiKey": "your-40-character-api-key",
+      "priority": 0,
+      "application": "TheLounge"
+    },
+    "ntfy": {
+      "enabled": true,
+      "server": "https://ntfy.sh",
+      "topic": "thelounge-backup",
+      "priority": 3,
+      "tags": "irc"
+    }
+  },
+  "filters": {
+    "onlyWhenAway": true,
+    "highlights": true
+  }
+}
+```
+
+### Custom Notification Format
+
+Customize how notifications are displayed with template variables:
+
+```json
+{
+  "enabled": true,
+  "services": {
+    "pushover": {
+      "enabled": true,
+      "userKey": "your-user-key",
+      "apiToken": "your-api-token",
+      "priority": 0,
+      "sound": "pushover"
+    }
+  },
+  "filters": {
+    "onlyWhenAway": true,
+    "highlights": true
+  },
+  "format": {
+    "title": "{{network}}",
+    "titleWithChannel": "{{network}} / {{channel}}",
+    "message": "{{time}} <{{nick}}> {{message}}",
+    "actionMessage": "{{time}} * {{nick}} {{message}}"
+  }
+}
+```
+
+This will display notifications like:
+- Title: `freenode / #lounge` (for channel messages) or `freenode` (for PMs)
+- Message: `14:30 <john> Hello everyone`
 
 ## Troubleshooting
 

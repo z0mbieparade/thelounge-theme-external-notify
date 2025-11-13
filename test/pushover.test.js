@@ -144,6 +144,132 @@ describe("PushoverNotifier", function() {
 		});
 	});
 
+	describe("handleConfig() - case sensitivity", function() {
+		it("should accept lowercase setting names", function() {
+			const config = {
+				services: {}
+			};
+			const notifier = new PushoverNotifier({}, mockLogger);
+
+			// Test with lowercase "userkey" instead of "userKey"
+			const result = notifier.handleConfig(config, "userkey", "a".repeat(30));
+
+			expect(result.success).to.equal(true);
+			expect(config.services.Pushover.userKey).to.equal("a".repeat(30));
+			// Should NOT create a lowercase key
+			expect(config.services.Pushover.userkey).to.be.undefined;
+		});
+
+		it("should accept correct camelCase setting names", function() {
+			const config = {
+				services: {}
+			};
+			const notifier = new PushoverNotifier({}, mockLogger);
+
+			const result = notifier.handleConfig(config, "userKey", "a".repeat(30));
+
+			expect(result.success).to.equal(true);
+			expect(config.services.Pushover.userKey).to.equal("a".repeat(30));
+		});
+
+		it("should accept uppercase setting names", function() {
+			const config = {
+				services: {}
+			};
+			const notifier = new PushoverNotifier({}, mockLogger);
+
+			const result = notifier.handleConfig(config, "USERKEY", "a".repeat(30));
+
+			expect(result.success).to.equal(true);
+			expect(config.services.Pushover.userKey).to.equal("a".repeat(30));
+			// Should NOT create an uppercase key
+			expect(config.services.Pushover.USERKEY).to.be.undefined;
+		});
+
+		it("should accept mixed case setting names", function() {
+			const config = {
+				services: {}
+			};
+			const notifier = new PushoverNotifier({}, mockLogger);
+
+			const result = notifier.handleConfig(config, "UsErKeY", "a".repeat(30));
+
+			expect(result.success).to.equal(true);
+			expect(config.services.Pushover.userKey).to.equal("a".repeat(30));
+			// Should NOT create a mixed case key
+			expect(config.services.Pushover.UsErKeY).to.be.undefined;
+		});
+
+		it("should return correct camelCase key in success message", function() {
+			const config = {
+				services: {}
+			};
+			const notifier = new PushoverNotifier({}, mockLogger);
+
+			// Test with lowercase input
+			const result = notifier.handleConfig(config, "apitoken", "b".repeat(30));
+
+			expect(result.success).to.equal(true);
+			expect(result.messages).to.be.an('array');
+			// The success message should contain the correct camelCase "apiToken", not "apitoken"
+			const successMessage = result.messages[0];
+			expect(successMessage).to.include("apiToken");
+			expect(successMessage).to.not.include("apitoken");
+		});
+
+		it("should reject unknown settings regardless of case", function() {
+			const config = {
+				services: {}
+			};
+			const notifier = new PushoverNotifier({}, mockLogger);
+
+			const result = notifier.handleConfig(config, "invalidkey", "value");
+
+			expect(result.success).to.equal(false);
+			expect(result.messages).to.be.an('array');
+			expect(result.messages[0]).to.include("Unknown");
+		});
+
+		it("should work for optional settings with different cases", function() {
+			const config = {
+				services: {
+					Pushover: {
+						userKey: "a".repeat(30),
+						apiToken: "b".repeat(30)
+					}
+				}
+			};
+			const notifier = new PushoverNotifier({}, mockLogger);
+
+			// Test "priority" with lowercase
+			const result1 = notifier.handleConfig(config, "priority", "1");
+			expect(result1.success).to.equal(true);
+			expect(config.services.Pushover.priority).to.equal(1);
+
+			// Test "sound" with mixed case
+			const result2 = notifier.handleConfig(config, "SoUnD", "cosmic");
+			expect(result2.success).to.equal(true);
+			expect(config.services.Pushover.sound).to.equal("cosmic");
+		});
+
+		it("should auto-enable when all required fields set via any case", function() {
+			const config = {
+				services: {}
+			};
+			const notifier = new PushoverNotifier({}, mockLogger);
+
+			// Set userKey with lowercase
+			notifier.handleConfig(config, "userkey", "a".repeat(30));
+			expect(config.services.Pushover.enabled).to.equal(false);
+
+			// Set apiToken with mixed case - should auto-enable
+			const result = notifier.handleConfig(config, "APITOKEN", "b".repeat(30));
+			expect(result.success).to.equal(true);
+			expect(result.autoEnabled).to.equal(true);
+			expect(config.services.Pushover.enabled).to.equal(true);
+		});
+	});
+
 	describe("send()", function() {
 		it("should format notification correctly", function(done) {
 			const config = {

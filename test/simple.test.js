@@ -26,6 +26,7 @@ describe('External Notify Plugin Basic Tests', function() {
 			'lib/commands.js',
 			'lib/config-manager.js',
 			'lib/notification-manager.js',
+			'lib/version-check.js',
 			'lib/notifiers/base.js',
 			'lib/notifiers/pushover.js'
 		];
@@ -84,6 +85,27 @@ describe('External Notify Plugin Basic Tests', function() {
 		expect(content).to.include('notifyCommand');
 		expect(content).to.include('input: function');
 		expect(content).to.include('allowDisconnected');
+	});
+
+	it('should have version command', function() {
+		const commandsPath = path.join(__dirname, '../lib/commands.js');
+		const content = fs.readFileSync(commandsPath, 'utf8');
+
+		// Check for version command
+		expect(content).to.include('case "version":');
+		expect(content).to.include('handleVersion');
+		expect(content).to.include('function handleVersion');
+		expect(content).to.include('package.json');
+	});
+
+	it('should include version in virtual channel topic', function() {
+		const indexPath = path.join(__dirname, '../index.js');
+		const content = fs.readFileSync(indexPath, 'utf8');
+
+		// Check that channel topic includes version
+		expect(content).to.include('package.json');
+		expect(content).to.include('External Notify - Settings & Status');
+		expect(content).to.match(/v\$\{version\}/);
 	});
 
 	it('should store config in network objects', function() {
@@ -190,7 +212,8 @@ describe('External Notify Plugin Basic Tests', function() {
 			'test/config-manager.test.js',
 			'test/notification-manager.test.js',
 			'test/pushover.test.js',
-			'test/integration.test.js'
+			'test/integration.test.js',
+			'test/version-check.test.js'
 		];
 
 		testFiles.forEach(file => {

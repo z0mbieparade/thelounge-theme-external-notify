@@ -2,8 +2,9 @@
 
 const ConfigManager = require("./lib/config-manager");
 const NotificationManager = require("./lib/notification-manager");
-const { F } = require("./lib/format");
+const { F, C } = require("./lib/format");
 const sendMessage = require("./lib/message");
+const { checkForUpdate } = require("./lib/version-check");
 
 // Plugin state management - tracks active notification sessions
 // Key: `${clientId}-${networkId}`
@@ -70,9 +71,14 @@ function getOrCreateVirtualChannel(client, network) {
 	const config = state.configManager.load();
 	const channelName = config.channelName || "external-notify";
 
+	// Get version for channel topic
+	const packageJson = require("./package.json");
+	const version = packageJson.version || "1.0.0";
+	const channelTopic = `External Notify - Settings & Status (v${version})`;
+
 	// Check if channel already exists in network
 	let virtualChannel = network.channels.find(chan =>
-		chan.name === channelName && chan.topic === "External Notify - Settings & Status"
+		chan.name === channelName && chan.topic.startsWith("External Notify - Settings & Status")
 	);
 
 	if (!virtualChannel) {
@@ -80,7 +86,7 @@ function getOrCreateVirtualChannel(client, network) {
 		virtualChannel = client.createChannel({
 			name: channelName,
 			type: "channel",  // Use channel type so messages display properly
-			topic: "External Notify - Settings & Status"
+			topic: channelTopic
 		});
 
 		// Add to channels array (our export hook will filter it out when saving)
@@ -93,6 +99,30 @@ function getOrCreateVirtualChannel(client, network) {
 		const commands = require("./lib/commands");
 		commands.handleHelp(client, network);
 
+		// Check for updates (non-blocking)
+		const packageJson = require("./package.json");
+		if (packageJson.repository && packageJson.repository.url) {
+			checkForUpdate(packageJson.version, packageJson.repository.url)
+				.then(updateInfo => {
+					if (updateInfo.updateAvailable) {
+						sendMessage(client, network, [
+							F.BREAK,
+							`${C.WARNING}⚠ Update Available${C.RESET}`,
+							F.INDENT(1, `Current version: ${C.CYAN}v${updateInfo.currentVersion}${C.RESET}`),
+							F.INDENT(1, `Latest version: ${C.SUCCESS}v${updateInfo.latestVersion}${C.RESET}`),
+							F.INDENT(1, `Run ${C.BOLD}npm update thelounge-plugin-external-notify${C.RESET} to update`),
+							F.BREAK
+						]);
+					}
+				})
+				.catch(err => {
+					// Silently ignore version check errors
+					if (apiInstance) {
+						apiInstance.Logger.debug(`Version check failed: ${err.message}`);
+					}
+				});
+		}
+
 		// Notify client about new channel
 		if (client.manager && client.manager.sockets) {
 			client.manager.sockets.to(client.id).emit("join", {
@@ -100,6 +130,11 @@ function getOrCreateVirtualChannel(client, network) {
 				chan: virtualChannel.getFilteredClone(client),
 				index: channelIndex
 			});
+		}
+	} else {
+		// Update topic if it doesn't match current version
+		if (virtualChannel.topic !== channelTopic) {
+			virtualChannel.topic = channelTopic;
 		}
 	}
 

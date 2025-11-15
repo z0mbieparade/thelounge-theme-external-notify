@@ -667,12 +667,10 @@ See `TESTING.md` for detailed testing instructions.
 
 MIT
 
-## Contributing
-
-Contributions welcome! Please open an issue or PR on GitHub.
-
 ## Support
 
-- Report bugs at: [GitHub Issues](https://github.com/yourusername/thelounge-plugin-external-notify/issues)
+- Report bugs at: [GitHub Issues](https://github.com/z0mbieparade/thelounge-plugin-external-notify/issues)
 - TheLounge documentation: [thelounge.chat](https://thelounge.chat/)
 - Pushover API docs: [pushover.net/api](https://pushover.net/api)
+- Prowl API docs: [prowlapp.com/api/api](https://www.prowlapp.com/api.php)
+- Ntfy docs: [https://docs.ntfy.sh](https://docs.ntfy.sh)
